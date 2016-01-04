@@ -1,0 +1,23 @@
+html, body {
+height: 100%;
+width: 100%;
+margin: 0;
+padding: 0;
+}
+.dijitBorders{
+margin:5px 5px 5px 5px; 
+border:solid thin #9CAA9C;
+-moz-border-radius: 4px;
+}
+.labelText{
+color:#9CAA9C;
+font-size:12pt;  
+font-family:"Tahoma";
+margin:5px;
+}
+.headerText{
+color:#9CAA9C;
+font-size:16pt;
+font-weight:bold;
+font-family: "Tahoma";
+}
