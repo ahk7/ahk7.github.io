@@ -94,9 +94,9 @@ function mapLoaded() {
 		
 	function requestPhotos() {
         //get geotagged photos from flickr
-        //tags=flower&tagmode=all
+
 		console.log('requesting');
-		//console.log(featureLayer.url + "/1/attachments/1");
+
 		
         var requestHandle = esriRequest({
           url: evt.url + "/3/attachments/2",
