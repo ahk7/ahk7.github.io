@@ -35,19 +35,22 @@
 	  <center><span class="labelText">ESRI 2016 Photo Scavenger Hunt!</span></center>
 	  
       </div>
-	  
-	  
-	  
+
       <div id="right" data-dojo-type="dijit/layout/ContentPane" 
            data-dojo-props="region:'left'" 
-           style="width:100px;font-size:small;">
+           style="width:221px;font-size:large;">
 
           <center><span class="labelText">Current Rankings</span></center>
           <div id="ageDiv" class="dijitBorders"><table id="rankTble" style='border:1;' ></table>
 		  </div>
 		  
-          <center><span class="labelText">Magnitude</span></center>
-          <div id="magnitudeDiv" class="dijitBorders" ></div>
+          <center><span class="labelText">Hunted</span></center>
+          <div id="magnitudeDiv" class="dijitBorders" >
+		  <p id="teamName"></p>
+		  <p id="Guess"></p>
+		  <img id="imgAttach" src="" alt="select a hunted location!" width="100%" height="275px">
+		  </div>
+		  
       </div>
 		<div id="header" 
           data-dojo-type="dijit/layout/ContentPane" 

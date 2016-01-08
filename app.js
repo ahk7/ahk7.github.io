@@ -81,44 +81,42 @@ function mapLoaded() {
 	
 	featureLayer.on("click", function(evt){
 		
-		//Gather PopUp Details
+		//erase img src to nothing
 		
-		//assign to Div inner HTML
 		
-		console.log(evt.graphic.attributes.TeamName);
 		
+		
+		var attr = evt.graphic.attributes;
 		console.log("you clicked here");
 		
-		requestPhotos();
+		if(attr.TeamName){
+			
+			$("#teamName").text(attr.TeamName);
+			
+			if(attr.Guess){
+				
+				$("#Guess").text(attr.Guess);
+			}
+			
+			
+		}
 		
+		var objectId = evt.graphic.attributes[featureLayer.objectIdField];
 		
-	function requestPhotos() {
-        //get geotagged photos from flickr
-
-		console.log('requesting');
-
-		console.log(featureLayer.url + "/3/attachments/2");
-        var requestHandle = esriRequest({
-          url: featureLayer.url + "/3/attachments/2",
-         handleAs:blob
-        });
-        requestHandle.then(requestSucceeded, requestFailed);
-      }
-	  
-	 function requestSucceeded(response, io){
-		 
-		 console.log('succeeded');
-	 }
-	 
-	 function requestFailed(error){
-		 
-		 console.log('failed');
-		 
-	 }
-	 
-	 
-	 
+		featureLayer.queryAttachmentInfos(objectId, function(infos){
+			 
+			if (infos.length>0 && !!infos[0].url) {
+				$("#imgAttach").attr("src", "");
+				$("#imgAttach").attr("src", infos[0].url);
+			}
+			else{
+				console.log("oops");
+				$("#imgAttach").attr("src", "None.png");
+			}
+		});
+		
 	});
+		
 	
 	map.on("layers-add-result", function(evt){
 		
