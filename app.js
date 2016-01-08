@@ -14,6 +14,7 @@ require([
 "esri/tasks/GeometryService",
 "esri/dijit/InfoWindow",
 "esri/request",
+"esri/renderers/HeatmapRenderer",
 "esri/symbols/SimpleFillSymbol","esri/symbols/SimpleLineSymbol","esri/Color",
 "dojo/DeferredList","dojo/_base/Deferred",
 "dijit/layout/BorderContainer", "dijit/layout/ContentPane", "dojo/domReady!"
@@ -31,6 +32,7 @@ Graphic, GraphicsLayer, FeatureSet,
 GeometryService,
 InfoWindow,
 esriRequest,
+HeatmapRenderer,
 SimpleFillSymbol, SimpleLineSymbol, Color,
 DeferredList, Deferred
 ) {
@@ -65,17 +67,18 @@ var answerLayer = new FeatureLayer("http://services.arcgis.com/EgePHk52tsFjmhbJ/
 
 map.on("load", mapLoaded); 
 
+//create new layer as heatmap layer
+
 
 function mapLoaded() {
 
 	var timeExtent = new TimeExtent();
 	timeExtent.startTime = new Date("1/4/2016 12:00:00 UTC");
 	timeExtent.endTime = new Date("1/4/2016 12:31:00 UTC");
-	//featureLayer.setTimeDefinition(timeExtent);
+	featureLayer.setTimeDefinition(timeExtent);
 	
 	
-	map.addLayers([featureLayer, answerLayer]);
-
+	map.addLayers([featureLayer, answerLayer]);	
 
 	loadRanks();
 	
@@ -116,18 +119,19 @@ function mapLoaded() {
 		});
 		
 	});
-		
+	
+	
 	
 	map.on("layers-add-result", function(evt){
 		
-		//photoCheck(evt);
+		photoCheck(evt);
 		
 	});
 
-	//featureLayer.on("load", featureLayerLoaded);
+	featureLayer.on("load", featureLayerLoaded);
 	
 	//$('#timeSliderDiv').innerHTML = '';
-	//onClick button, 
+
 	
 }
 
