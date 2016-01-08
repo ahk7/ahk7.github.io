@@ -13,6 +13,7 @@ require([
 "esri/graphic", "esri/layers/GraphicsLayer","esri/tasks/FeatureSet",
 "esri/tasks/GeometryService",
 "esri/dijit/InfoWindow",
+"esri/request",
 "esri/symbols/SimpleFillSymbol","esri/symbols/SimpleLineSymbol","esri/Color",
 "dojo/DeferredList","dojo/_base/Deferred",
 "dijit/layout/BorderContainer", "dijit/layout/ContentPane", "dojo/domReady!"
@@ -29,7 +30,8 @@ DistanceParameters,
 Graphic, GraphicsLayer, FeatureSet,
 GeometryService,
 InfoWindow,
-Popup, SimpleFillSymbol, SimpleLineSymbol, Color,
+esriRequest,
+SimpleFillSymbol, SimpleLineSymbol, Color,
 DeferredList, Deferred
 ) {
 parser.parse();
@@ -69,7 +71,7 @@ function mapLoaded() {
 	var timeExtent = new TimeExtent();
 	timeExtent.startTime = new Date("1/4/2016 12:00:00 UTC");
 	timeExtent.endTime = new Date("1/4/2016 12:31:00 UTC");
-	featureLayer.setTimeDefinition(timeExtent);
+	//featureLayer.setTimeDefinition(timeExtent);
 	
 	
 	map.addLayers([featureLayer, answerLayer]);
@@ -77,7 +79,46 @@ function mapLoaded() {
 
 	loadRanks();
 	
-	
+	featureLayer.on("click", function(evt){
+		
+		//Gather PopUp Details
+		
+		//assign to Div inner HTML
+		
+		console.log(evt.graphic.attributes.TeamName);
+		
+		console.log("you clicked here");
+		
+		requestPhotos();
+		
+		
+	function requestPhotos() {
+        //get geotagged photos from flickr
+        //tags=flower&tagmode=all
+		console.log('requesting');
+		console.log(featureLayer.url + "/1/attachments/1");
+		
+        var requestHandle = esriRequest({
+          url: evt.url + "/attachments/1",
+         // callbackParamName: "jsoncallback"
+        });
+        requestHandle.then(requestSucceeded, requestFailed);
+      }
+	  
+	 function requestSucceeded(response, io){
+		 
+		 console.log('succeeded');
+	 }
+	 
+	 function requestFailed(error){
+		 
+		 console.log('failed');
+		 
+	 }
+	 
+	 
+	 
+	});
 	
 	map.on("layers-add-result", function(evt){
 		
@@ -85,7 +126,10 @@ function mapLoaded() {
 		
 	});
 
-	featureLayer.on("load", featureLayerLoaded);
+	//featureLayer.on("load", featureLayerLoaded);
+	
+	//$('#timeSliderDiv').innerHTML = '';
+	//onClick button, 
 	
 }
 
@@ -213,7 +257,6 @@ function featureLayerLoaded(evt) {
 	timeSlider.on("time-extent-change", function(evt){
 		
 		var timeExt = evt.target.fullTimeExtent;
-		//console.log(evt.target);
 		
 		//when thumb on timeslider is moved
 		 var info = timeExt.startTime.toUTCString() + 
@@ -224,7 +267,7 @@ function featureLayerLoaded(evt) {
 		
 	});
 
-	
+
 	
 }
 
