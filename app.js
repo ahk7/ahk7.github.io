@@ -15,7 +15,8 @@ require([
 "esri/dijit/InfoWindow",
 "esri/request",
 "esri/renderers/HeatmapRenderer",
-"esri/symbols/SimpleFillSymbol","esri/symbols/SimpleLineSymbol","esri/Color",
+"esri/renderers/UniqueValueRenderer",
+"esri/symbols/SimpleMarkerSymbol","esri/symbols/SimpleLineSymbol",
 "dojo/DeferredList","dojo/_base/Deferred",
 "dijit/layout/BorderContainer", "dijit/layout/ContentPane", "dojo/domReady!"
 ], function(
@@ -33,26 +34,27 @@ GeometryService,
 InfoWindow,
 esriRequest,
 HeatmapRenderer,
-SimpleFillSymbol, SimpleLineSymbol, Color,
+UniqueValueRenderer,
+SimpleMarkerSymbol, SimpleLineSymbol,
 DeferredList, Deferred
 ) {
 parser.parse();
 
-
+$('#splashscreen').hide();
 
 map = new Map("map", {
   basemap: "streets",
   center: [-123.122, 49.285],
   slider: false,
   zoom:15
-  //infoWindow: popup
+
 });
 
 var gsvc = new GeometryService("http://tasks.arcgisonline.com/ArcGIS/rest/services/Geometry/GeometryServer");
 
 // feature layer
 ////add Team Guess layer
-var featureLayer = new FeatureLayer("http://services.arcgis.com/EgePHk52tsFjmhbJ/arcgis/rest/services/TESTTeamGuess/FeatureServer/0", {
+var featureLayer = new FeatureLayer("http://services.arcgis.com/EgePHk52tsFjmhbJ/arcgis/rest/services/Team_Submissions/FeatureServer/0", {
 mode: FeatureLayer.MODE_SNAPSHOT,
 outFields: [ "*" ]
 });
@@ -65,64 +67,81 @@ var answerLayer = new FeatureLayer("http://services.arcgis.com/EgePHk52tsFjmhbJ/
 });
 
 
+
 map.on("load", mapLoaded); 
 
-//create new layer as heatmap layer
-
+//add teamname
+var Teams = [];
 
 function mapLoaded() {
-
+	var today = new Date();
 	var timeExtent = new TimeExtent();
 	timeExtent.startTime = new Date("1/4/2016 12:00:00 UTC");
 	timeExtent.endTime = new Date("1/4/2016 12:31:00 UTC");
 	featureLayer.setTimeDefinition(timeExtent);
 	
+
+	renderByTeam(today, timeExtent.endTime);	
+	
 	
 	map.addLayers([featureLayer, answerLayer]);	
-
+	
+	
 	loadRanks();
 	
+	//add renderers
+	
+	
+	
+	
 	featureLayer.on("click", function(evt){
-		
-		//erase img src to nothing
-		
-		
-		
-		
-		var attr = evt.graphic.attributes;
-		console.log("you clicked here");
-		
-		if(attr.TeamName){
+	
+		if(today>timeExtent.endTime){
 			
-			$("#teamName").text(attr.TeamName);
+			var attr = evt.graphic.attributes;
+			console.log("you clicked here");
 			
-			if(attr.Guess){
+			if(attr.TeamName){
 				
-				$("#Guess").text(attr.Guess);
+				$("#teamName").text(attr.TeamName);
+				
+				if(attr.Guess){
+					
+					$("#Guess").text(attr.Guess);
+				}
+				
+				
 			}
 			
+			var objectId = evt.graphic.attributes[featureLayer.objectIdField];
 			
+			featureLayer.queryAttachmentInfos(objectId, function(infos){
+				 
+				if (infos.length>0 && !!infos[0].url) {
+					$("#imgAttach").attr("src", "");
+					$("#imgAttach").attr("src", infos[0].url);
+				}
+				else{
+					console.log("oops");
+					$("#imgAttach").attr("src", "None.png");
+				}
+			});
 		}
+	else{
+
+		//add splash screen
+		$('#splashscreen').show();
+		$('#splashscreen').fadeOut(1500);
+
+	}		
 		
-		var objectId = evt.graphic.attributes[featureLayer.objectIdField];
-		
-		featureLayer.queryAttachmentInfos(objectId, function(infos){
-			 
-			if (infos.length>0 && !!infos[0].url) {
-				$("#imgAttach").attr("src", "");
-				$("#imgAttach").attr("src", infos[0].url);
-			}
-			else{
-				console.log("oops");
-				$("#imgAttach").attr("src", "None.png");
-			}
-		});
-		
+
 	});
 	
 	
 	
 	map.on("layers-add-result", function(evt){
+		
 		
 		photoCheck(evt);
 		
@@ -130,17 +149,28 @@ function mapLoaded() {
 
 	featureLayer.on("load", featureLayerLoaded);
 	
-	//$('#timeSliderDiv').innerHTML = '';
 
+}
+
+function renderByTeam(today, raceEnd){
+	console.log("here");
 	
+	if(today>raceEnd){
+		console.log('beg');
+		var defaultSymbol = "";
+		var renderer = new UniqueValueRenderer(defaultSymbol, "TeamName");
+		console.log('2');
+		renderer.addValue("TeamA", new SimpleMarkerSymbol().setColor(new Color([255,255,0,0.5]))); 
+		renderer.addValue("TeamB", new SimpleMarkerSymbol().setColor(new Color([128,0,128,0.5]))); 
+		
+		console.log(renderer);
+		featureLayer.setRenderer(renderer);
+	}
 }
 
 
-
 function loadRanks(){
-	
-	
-	
+
 		//QUERY
 	
 	var qryTask = new QueryTask("http://services.arcgis.com/EgePHk52tsFjmhbJ/arcgis/rest/services/TESTTeamGuess/FeatureServer/0");
@@ -154,20 +184,20 @@ function loadRanks(){
 		
 		//get list of Teams
 		var teamList = [];
-		var dateList = [];
+		//var dateList = [];
 		//console.log(fs.features);
 		
 		for(var i = 0; i<fs.features.length; i++){
 			
 			var team = fs.features[i].attributes.TeamName;	
 				
-			var date = fs.features[i].attributes.CreateDate;
+			//var date = fs.features[i].attributes.CreateDate;
 			
 			
-			var ddd = new Date(date);
+			//var ddd = new Date(date);
 			
 			
-			dateList.push(date);
+			//dateList.push(date);
 				
 			teamList.push(team);
 
@@ -194,7 +224,7 @@ function loadRanks(){
 				
 		});
 		
-		dateList.sort();
+		//dateList.sort();
 
 		
 
@@ -241,29 +271,38 @@ function loadRanks(){
 
 function featureLayerLoaded(evt) {
 	//set time range
+
 	
-	console.log("loaded");
+	map.setExtent(featureLayer.fullExtent);
+	map.setZoom(14);
 
 	// creates time slider
 	timeSlider = new TimeSlider({ style: "width: 100%;"}, dom.byId("timeSliderDiv"));
 	
 	//timeSlider.thumbCount = 2;
 	timeSlider.createTimeStopsByTimeInterval(evt.layer.getTimeDefinition(),5, TimeInfo.UNIT_MINUTES);
-	timeSlider.setThumbIndexes([0]);
-	timeSlider.setThumbMovingRate(500);
+	timeSlider.setThumbIndexes([7]);
+	timeSlider.setThumbMovingRate(750);
 
-
+	timeLabels(timeSlider);
+	
 	timeSlider.startup();
 	map.setTimeSlider(timeSlider);
 	
 	timeSlider.on("time-extent-change", function(evt){
 		
+		
+	
+		
 		var timeExt = evt.target.fullTimeExtent;
+		var end = map.timeExtent.endTime;
+	
 		
 		//when thumb on timeslider is moved
 		 var info = timeExt.startTime.toUTCString() + 
 		" &nbsp;&nbsp;<i>to<\/i>&nbsp;&nbsp; " + 
-		timeExt.endTime.toUTCString();
+		end.toUTCString();
+		
 		dom.byId("timeInfo").innerHTML = info;
 		
 		
@@ -273,17 +312,21 @@ function featureLayerLoaded(evt) {
 	
 }
 
+function timeLabels(ts){
+	
+	var labels = Array.map(ts.timeStops, function(timeStop,i){ 
+    if(i>= 0){
+      return timeStop.getMinutes(); }
+    else{
+      return "";
+    }
+  });   
+  
 
-function displayTimeInfo(timeExtent) {
-	console.log("display");
-	console.log(timeExtent.startTime);
-	//when thumb on timeslider is moved
-  var info = timeExtent.startTime.toDateString() + 
-	" &nbsp;&nbsp;<i>to<\/i>&nbsp;&nbsp; " + 
-	timeExtent.endTime.toUTCString();
-  dom.byId("timeInfo").innerHTML = info;
- // console.log(info);
+  timeSlider.setLabels(labels);
+
 }
+
 
 
 function photoCheck(evt){
