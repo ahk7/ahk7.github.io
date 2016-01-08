@@ -100,7 +100,7 @@ function mapLoaded() {
 		console.log(featureLayer.url + "/3/attachments/2");
         var requestHandle = esriRequest({
           url: featureLayer.url + "/3/attachments/2",
-         // callbackParamName: "jsoncallback"
+         handleAs:blob
         });
         requestHandle.then(requestSucceeded, requestFailed);
       }
