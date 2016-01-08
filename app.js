@@ -97,9 +97,9 @@ function mapLoaded() {
 
 		console.log('requesting');
 
-		
+		console.log(featureLayer.url + "/3/attachments/2");
         var requestHandle = esriRequest({
-          url: evt.url + "/3/attachments/2",
+          url: featureLayer.url + "/3/attachments/2",
          // callbackParamName: "jsoncallback"
         });
         requestHandle.then(requestSucceeded, requestFailed);
