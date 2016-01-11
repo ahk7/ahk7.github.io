@@ -123,7 +123,7 @@ function mapLoaded() {
 				}
 				else{
 					console.log("oops");
-					$("#imgAttach").attr("src", "None.png");
+					$("#imgAttach").attr("src", "None.PNG");
 				}
 			});
 		}
