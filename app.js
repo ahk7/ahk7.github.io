@@ -40,9 +40,11 @@ DeferredList, Deferred
 ) {
 parser.parse();
 
-$('#splashscreen').hide();
+//hide message that says race is still on-going
+$('#raceOn').hide();
 
 
+//create map
 map = new Map("map", {
   basemap: "streets",
   center: [-123.122, 49.285],
@@ -51,58 +53,143 @@ map = new Map("map", {
 
 });
 
+//create geometry service
 var gsvc = new GeometryService("http://tasks.arcgisonline.com/ArcGIS/rest/services/Geometry/GeometryServer");
 
-// feature layer
-////add Team Guess layer
-var featureLayer = new FeatureLayer("http://services.arcgis.com/EgePHk52tsFjmhbJ/arcgis/rest/services/Team_Submissions/FeatureServer/0", {
+//add Team Guesses layer
+var featureLayer = new FeatureLayer("http://services.arcgis.com/EgePHk52tsFjmhbJ/arcgis/rest/services/TeamSubmissions/FeatureServer/0", {
 mode: FeatureLayer.MODE_SNAPSHOT,
 outFields: [ "*" ]
 });
 
-
+//add Answers layer
 var answerLayer = new FeatureLayer("http://services.arcgis.com/EgePHk52tsFjmhbJ/arcgis/rest/services/Answers/FeatureServer/0", {
 	mode: FeatureLayer.MODE_SNAPSHOT,
 	opacity: 0.0,
 	outFields: [ "*" ]
 });
 
-
+//assign team names
+var Teams = [];
 
 map.on("load", mapLoaded); 
 
-//add teamname
-var Teams = [];
+$('#printBtn').click(getClues);
 
-var print = $('#printBtn');
-print.click(getClues);
+//run when map is loaded
+function mapLoaded() {
+	
+	//today's date
+	var today = new Date();
+	
+	//set the time frame of the race
+	var timeExtent = new TimeExtent();
+	timeExtent.startTime = new Date("1/4/2016 12:00:00 UTC");
+	timeExtent.endTime = new Date("1/4/2016 12:31:00 UTC");
+	featureLayer.setTimeDefinition(timeExtent);
+	
+	//when race is over, colour the points by team
+	renderByTeam(today, timeExtent.endTime);	
+	
+	//add layers to map
+	map.addLayers([featureLayer, answerLayer]);	
 
+	//load current rankings
+	loadRanks();
+
+	featureLayer.on("click",function(evt){
+			
+			featDetails(evt, today, timeExtent.endTime);
+	});
+
+	featureLayer.on("load", function(evt){
+		
+		featureLayerLoaded(evt);
+		
+		
+	});	
+	
+	map.on("layers-add-result", function(evt){
+
+		photoCheck(evt);
+		checkPhotoPts(evt);
+		
+	});
+
+
+	
+
+}
+
+function featDetails(evt, today, raceEnd){
+		
+		//if race is over
+		
+	if(today>raceEnd){
+		
+		var attr = evt.graphic.attributes;
+		
+		//if a team name exists, show the team's name and their guess
+		 if(attr.TeamName){
+			
+			$("#teamName").text(attr.TeamName);
+			
+			if(attr.Guess){
+				
+				$("#Guess").text(attr.Guess);
+			}
+			
+			
+		} 
+		
+		//Get attached photos
+		var objectId = evt.graphic.attributes[featureLayer.objectIdField];
+		
+		featureLayer.queryAttachmentInfos(objectId, function(infos){
+			 
+			 //if there are attachments
+			if (infos.length>0 && !!infos[0].url) {
+				//show them in the div
+				$("#imgAttach").attr("src", "");
+				$("#imgAttach").attr("src", infos[0].url);
+			}
+			else{
+				//otherwise show no attachments found
+				$("#imgAttach").attr("src", "None2.png");
+			}
+		});
+	}
+	else{
+		//add splash screen
+		$('#raceOn').show();
+		$('#raceOn').fadeOut(1500);
+	}
+
+}
+
+//print Clues to PDF
 function printClues(clues) {
 
-	//get info from answer layer
-	var doc = new jsPDF();
-	
-	
-	//doc.text(20,20, txt);
-	doc.fromHTML(clues);
-	doc.save('Clues.pdf');
+	var pdf = new jsPDF();
+
+	pdf.fromHTML(clues);
+	pdf.save('Clues.pdf');
 }
 
 function getClues(){
 	
-	//var qryTask = new QueryTask("http://services.arcgis.com/EgePHk52tsFjmhbJ/arcgis/rest/services/TESTTeamGuess/FeatureServer/0");
 	var qryTask = new QueryTask(answerLayer.url);
 	
 	var qry = new Query();
 	qry.where = "1=1";
-	qry.outFields = ["Clue1","OBJECTID"];
+	qry.outFields = ["Clue1","Question"];
 	
 	var clueList = '<h1> Clues </h1>';
 	
 	qryTask.execute(qry, function(fs){
 		
 		for(var i=0;i<fs.features.length;i++){
-			clueList += '<p>'+fs.features[i].attributes.OBJECTID;
+			clueList += '<p>'+fs.features[i].attributes.Question;
 			clueList += '\. '+fs.features[i].attributes.Clue1+'</p>';
 		}
 		
@@ -111,138 +198,47 @@ function getClues(){
 	});
 }
 
-
-
-function mapLoaded() {
-	var today = new Date();
-	var timeExtent = new TimeExtent();
-	timeExtent.startTime = new Date("1/4/2016 12:00:00 UTC");
-	timeExtent.endTime = new Date("1/4/2016 12:31:00 UTC");
-	featureLayer.setTimeDefinition(timeExtent);
-	
-
-	renderByTeam(today, timeExtent.endTime);	
-	
-	
-	map.addLayers([featureLayer, answerLayer]);	
-	
-	
-	loadRanks();
-	
-	//add renderers
-
-	featureLayer.on("click", function(evt){
-	
-		if(today>timeExtent.endTime){
-			
-			var attr = evt.graphic.attributes;
-			console.log("you clicked here");
-			
-			if(attr.TeamName){
-				
-				$("#teamName").text(attr.TeamName);
-				
-				if(attr.Guess){
-					
-					$("#Guess").text(attr.Guess);
-				}
-				
-				
-			}
-			
-			var objectId = evt.graphic.attributes[featureLayer.objectIdField];
-			
-			featureLayer.queryAttachmentInfos(objectId, function(infos){
-				 
-				if (infos.length>0 && !!infos[0].url) {
-					$("#imgAttach").attr("src", "");
-					$("#imgAttach").attr("src", infos[0].url);
-				}
-				else{
-					console.log("oops");
-					$("#imgAttach").attr("src", "None2.png");
-				}
-			});
-		}
-	else{
-
-		//add splash screen
-		$('#splashscreen').show();
-		$('#splashscreen').fadeOut(1500);
-
-	}		
-		
-
-	});
-	
-	
-	
-	map.on("layers-add-result", function(evt){
-		
-		
-		photoCheck(evt);
-		
-	});
-
-	featureLayer.on("load", featureLayerLoaded);
-	
-
-}
-
+//colour by team when race is over
 function renderByTeam(today, raceEnd){
-	console.log("here");
 	
+	//if race is over
 	if(today>raceEnd){
-		console.log('beg');
+
 		var defaultSymbol = "";
 		var renderer = new UniqueValueRenderer(defaultSymbol, "TeamName");
-		console.log('2');
+		
+		//colour by team name
 		renderer.addValue("TeamA", new SimpleMarkerSymbol().setColor(new Color([255,255,0,0.5]))); 
 		renderer.addValue("TeamB", new SimpleMarkerSymbol().setColor(new Color([128,0,128,0.5]))); 
 		
-		console.log(renderer);
+		//set renderer
 		featureLayer.setRenderer(renderer);
 	}
 }
 
-
+//load team ranking
 function loadRanks(){
-
-		//QUERY
 	
 	//var qryTask = new QueryTask("http://services.arcgis.com/EgePHk52tsFjmhbJ/arcgis/rest/services/TESTTeamGuess/FeatureServer/0");
-	var qryTask = new QueryTask("http://services.arcgis.com/EgePHk52tsFjmhbJ/arcgis/rest/services/Team_Submissions/FeatureServer/0");
+	var qryTask1 = new QueryTask(featureLayer.url);
 	
-	var qry = new Query();
-	qry.where = "OBJECTID > 0";
-	qry.outFields = ["*"];
-
+	var qry1 = new Query();
+	qry1.where = "OBJECTID > 0";
+	qry1.outFields = ["*"];
 	
-	qryTask.execute(qry, function(fs){
+	qryTask1.execute(qry1, function(fs){
 		
 		//get list of Teams
 		var teamList = [];
-		//var dateList = [];
-		//console.log(fs.features);
-		
+			
 		for(var i = 0; i<fs.features.length; i++){
 			
 			var team = fs.features[i].attributes.TeamName;	
 				
-			//var date = fs.features[i].attributes.CreateDate;
-			
-			
-			//var ddd = new Date(date);
-			
-			
-			//dateList.push(date);
-				
 			teamList.push(team);
 
 		}
-		
-		
-		
+
 		function onlyUnique(value, index, self) { 
 			return self.indexOf(value) === index;
 		}
@@ -261,10 +257,7 @@ function loadRanks(){
 				listOfObjects.push(singleObj);
 				
 		});
-		
-		//dateList.sort();
 
-		
 
 		for(var i = 0; i<fs.features.length; i++){
 			
@@ -284,8 +277,9 @@ function loadRanks(){
 			} 
 			
 		}
+
 		
-		var divtable = document.getElementById('rankTble');
+		var divtable = $('#rankTble');
 		var rankTable='';
 		
 		listOfObjects.forEach(function(tm){
@@ -293,21 +287,18 @@ function loadRanks(){
 			var teamName = tm['team'];
 			var totalPts = tm['pts'];
 	
-			
 			//append to div
 			rankTable += '<tr><td>'+teamName+'</td><td>'+totalPts+'</td></tr>';
-			
-			divtable.innerHTML = rankTable;
-			
+
 		});
-		
-		
-		
+		divtable.append(rankTable);
 	});
 	
 }
 
+//timeSlider
 function featureLayerLoaded(evt) {
+	
 	//set time range
 
 	map.setExtent(featureLayer.fullExtent);
@@ -327,21 +318,16 @@ function featureLayerLoaded(evt) {
 	map.setTimeSlider(timeSlider);
 	
 	timeSlider.on("time-extent-change", function(evt){
-		
-		
-	
-		
+
 		var timeExt = evt.target.fullTimeExtent;
 		var end = map.timeExtent.endTime;
 	
-		
 		//when thumb on timeslider is moved
 		 var info = timeExt.startTime.toUTCString() + 
 		" &nbsp;&nbsp;<i>to<\/i>&nbsp;&nbsp; " + 
 		end.toUTCString();
 		
 		dom.byId("timeInfo").innerHTML = info;
-		
 		
 	});
 
@@ -364,10 +350,9 @@ function timeLabels(ts){
 
 }
 
-
-
 function photoCheck(evt){
-
+		
+		//add graphic layer to calculate distance
 	 	fLayer = evt.layers[0].layer;
 		answerLyr = evt.layers[1].layer;
 		
@@ -377,6 +362,7 @@ function photoCheck(evt){
 		runQry(fLayer, fLayer.url, qLayer);
 		runQry(answerLyr, answerLyr.url, aLayer);
 		
+		//add graphic layers together to use both
 		function runQry(lyr, url, mainLyr){
 		
 			var qryTaskQ = new QueryTask(lyr.url);
@@ -402,9 +388,9 @@ function photoCheck(evt){
 			
 		}
 		
-		
+		//when layer is added
 		map.on("layer-add", function(evt){
-
+	
 			var graphics = aLayer.graphics;
 			var answerPts = qLayer.graphics;
 			var deductPts = [];
@@ -414,7 +400,7 @@ function photoCheck(evt){
 				 
 				var ans = answerPts[i];
 				
-				var answerID = ans.attributes.OBJECTID;
+				var answerID = ans.attributes.Question;
 				
 				for(var j=0;j<graphics.length;j++){
 					
@@ -422,13 +408,14 @@ function photoCheck(evt){
 					var questionID = ques.attributes.Question;
 					var questionTeam = ques.attributes.TeamName;
 					
-					var params = hello(answerPts[i].geometry, graphics[j].geometry);
+					var params = getParams(answerPts[i].geometry, graphics[j].geometry);
 				
-					
-
 					 if(answerID == questionID){
 						
-						geo(params,answerPts[i], graphics[j]);
+						//update points based on distance
+						getPoints(params,answerPts[i], graphics[j]);
+						
+					
 						}
 
 					 }
@@ -439,71 +426,98 @@ function photoCheck(evt){
 
 		});
 
-		
 
-		
-		
-		//for each question, get photo and add into div
-		//div has 2 buttons, buttons if pressed stay down, also has close button
-		//if wrong photo, deduct from points
-		
-
-	
-	
 }
 
-function geo(pp, aa, qq){
+function getPoints(pp, aa, qq){
 	
 	gsvc.distance(pp, function(dist){
-		
-		
-		 if(dist>75){
-			
+
+		//if too far then deduct points
+		if(dist>75){
 			
 			for(var k =0;k<featureLayer.graphics.length;k++){
 				
 				var fl = featureLayer.graphics[k].attributes;
 				
 				//if not already updated for that question submission, calc points
-		/* 		if(fl.Updated_Geo == "N"){
+		 		if(fl.Update_Pt == "N"){
 					
+					fl.Points = 0;
 					
-				} */
-				
-				if(fl.Question == qq.attributes.Question && fl.TeamName == qq.attributes.TeamName){
+					if(fl.Question == qq.attributes.Question && fl.TeamName == qq.attributes.TeamName){
 					
-					//fl.Points -= 500;
-					//fl.Updated_Geo = "Y";
+						if(fl.Update_Photo == "Y"){
+							if(fl.Photo_Correct == "Y"){
+								fl.Points += 500;
+							}
+							else if(fl.Photo_Correct == "N"){
+								fl.Points +=0;
+							}
+							else{
+								console.log("Error");
+							}
+						}
+						
 					
+					fl.Update_Pt = "Y";
 					//fLayer.applyEdits(null,[fLayer.graphics[k]],null);
-					
-					
+					}
 				}
 				
 			}
 			
-			
 		}
 		else{
 			
-		} 
+			for(var k =0;k<featureLayer.graphics.length;k++){
+				
+				var fl = featureLayer.graphics[k].attributes;
+				
+				//if not already updated for that question submission, calc points
+		 		if(fl.Update_Pt == "N"){
+					if(fl.Question == qq.attributes.Question && fl.TeamName == qq.attributes.TeamName){
+						
+						fl.Points +=500;
+						
+						if(fl.Update_Photo == "Y"){
+							if(fl.Photo_Correct == "Y"){
+								fl.Points += 500;
+							}
+							else if(fl.Photo_Correct == "N"){
+								fl.Points +=0;
+							}
+							else{
+								console.log("Error");
+							}
+						}
+						
+						fl.Update_Pt = "Y";
+						//fLayer.applyEdits(null,[fLayer.graphics[k]],null);
+						
+					}
+				}
+				
+			}
 			
+		}
 			
 	 });
 	 
 	 
 
 }
-function hello(aa, qq){
+function getParams(aa, qq){
 						
-						var p =new DistanceParameters();
-						
-						  p.geometry1 = aa;
-						
-						  p.geometry2= qq;
-						  //define spatialRef
-						 p.distanceUnit = gsvc.UNIT_METER;
-						 
-						 return p;
-					}
+	var p =new DistanceParameters();
+		
+	p.geometry1 = aa;
+
+	p.geometry2= qq;
+	//define spatialRef
+	p.distanceUnit = gsvc.UNIT_METER;
+
+	return p;
+	}
+	
 });
