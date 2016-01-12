@@ -42,6 +42,7 @@ parser.parse();
 
 $('#splashscreen').hide();
 
+
 map = new Map("map", {
   basemap: "streets",
   center: [-123.122, 49.285],
@@ -73,6 +74,45 @@ map.on("load", mapLoaded);
 //add teamname
 var Teams = [];
 
+var print = $('#printBtn');
+print.click(getClues);
+
+function printClues(clues) {
+
+	//get info from answer layer
+	var doc = new jsPDF();
+	
+	
+	//doc.text(20,20, txt);
+	doc.fromHTML(clues);
+	doc.save('Clues.pdf');
+}
+
+function getClues(){
+	
+	//var qryTask = new QueryTask("http://services.arcgis.com/EgePHk52tsFjmhbJ/arcgis/rest/services/TESTTeamGuess/FeatureServer/0");
+	var qryTask = new QueryTask(answerLayer.url);
+	
+	var qry = new Query();
+	qry.where = "1=1";
+	qry.outFields = ["Clue1","OBJECTID"];
+	
+	var clueList = '<h1> Clues </h1>';
+	
+	qryTask.execute(qry, function(fs){
+		
+		for(var i=0;i<fs.features.length;i++){
+			clueList += '<p>'+fs.features[i].attributes.OBJECTID;
+			clueList += '\. '+fs.features[i].attributes.Clue1+'</p>';
+		}
+		
+		printClues(clueList);
+		
+	});
+}
+
+
+
 function mapLoaded() {
 	var today = new Date();
 	var timeExtent = new TimeExtent();
@@ -90,10 +130,7 @@ function mapLoaded() {
 	loadRanks();
 	
 	//add renderers
-	
-	
-	
-	
+
 	featureLayer.on("click", function(evt){
 	
 		if(today>timeExtent.endTime){
@@ -173,7 +210,8 @@ function loadRanks(){
 
 		//QUERY
 	
-	var qryTask = new QueryTask("http://services.arcgis.com/EgePHk52tsFjmhbJ/arcgis/rest/services/TESTTeamGuess/FeatureServer/0");
+	//var qryTask = new QueryTask("http://services.arcgis.com/EgePHk52tsFjmhbJ/arcgis/rest/services/TESTTeamGuess/FeatureServer/0");
+	var qryTask = new QueryTask("http://services.arcgis.com/EgePHk52tsFjmhbJ/arcgis/rest/services/Team_Submissions/FeatureServer/0");
 	
 	var qry = new Query();
 	qry.where = "OBJECTID > 0";
@@ -272,7 +310,6 @@ function loadRanks(){
 function featureLayerLoaded(evt) {
 	//set time range
 
-	
 	map.setExtent(featureLayer.fullExtent);
 	map.setZoom(14);
 
