@@ -43,6 +43,8 @@ parser.parse();
 //hide message that says race is still on-going
 $('#raceOn').hide();
 
+
+
 /* VARIABLES TO EDIT */
 
 //create map
@@ -51,7 +53,6 @@ map = new Map("map", {
   center: [-123.122, 49.285],
   slider: false,
   zoom:15
-
 });
 
 //create geometry service
@@ -72,13 +73,14 @@ outFields: [ "*" ]
 //assign team names
 //provide the name of the Team, and the AGOL username that will be collecting points on behalf of the team
 var Teams =[];
-Teams["TeamA"] = "akung_support";
-Teams["TeamB"] = "other_support";
+Teams["Team Awesome"] = "akung_support";
+Teams["DarkSide"] = "other_support";
 	
 //add timeframe of race ("mm/dd/yyy HH:MM:SS UTC")
 var raceStart = new Date("1/4/2016 12:00:00 UTC");
 var raceEnd = new Date("1/4/2016 12:31:00 UTC");
 
+/* END OF VARIABLES */
 
 map.on("load", mapLoaded); 
 
@@ -239,10 +241,10 @@ function featDetails(evt, today, raceEnd){
 			
 			$("#teamName").text(attr.TeamName);
 			
-			if(attr.Guess){
+			/* if(attr.Guess){
 				
 				$("#Guess").text(attr.Guess);
-			}
+			} */
 			
 			
 		} 
@@ -313,8 +315,8 @@ function renderByTeam(today, raceEnd){
 		var renderer = new UniqueValueRenderer(defaultSymbol, "TeamName");
 		
 		//colour by team name
-		renderer.addValue("TeamA", new SimpleMarkerSymbol().setColor(new Color([255,255,0,0.5]))); 
-		renderer.addValue("TeamB", new SimpleMarkerSymbol().setColor(new Color([128,0,128,0.5]))); 
+		renderer.addValue("Team Awesome", new SimpleMarkerSymbol().setColor(new Color([255,255,0,0.5]))); 
+		renderer.addValue("DarkSide", new SimpleMarkerSymbol().setColor(new Color([128,0,128,0.5]))); 
 		
 		//set renderer
 		featureLayer.setRenderer(renderer);
@@ -621,8 +623,7 @@ function getPoints(pp, aa, qq){
 						
 					}
 					else if(fl.Update_Pt == "N" && fl.Update_Photo == "Y"){
-						
-						
+
 						console.log("photo can't be updated with point being updated");
 						
 					}
@@ -644,73 +645,77 @@ function getPoints(pp, aa, qq){
 					var pt = 0;
 					var up_geom = 'N';
 					var up_pic = 'N';
+					
+
+					
+						//if points haven't been updated
+						if(fl.Update_Pt == "N" && fl.Update_Photo == "N"){
+							
+							console.log(fl.TeamName + fl.Question +"has not been updated");
+							if(fl.Photo_Correct == "N"){
+								console.log("photo wrong");
+								pt += 500;
+								up_geom = "Y";
+								up_pic = "Y";
+							}
+							else if(fl.Photo_Correct == "Y"){
+								console.log("photo correct");
+								pt += 1000;
+								up_geom = "Y";
+								up_pic = "Y";
+							}
+							else{
+								console.log("photo TBA");
+								pt += 500;
+								up_geom = "Y";
+			
+							}
+							
+							fl.Points += pt;
+							fl.Update_Pt = up_geom;
+							fl.Update_Photo = up_pic;
+							
+														
+							featureLayer.applyEdits(null,[featureLayer.graphics[k]],null);
+						}
+						else if(fl.Update_Pt == "Y" && fl.Update_Photo == "N"){
+							console.log(fl.TeamName + fl.Question +" has only updated the point, check pic");
+							console.log("Photo is: "+fl.Photo_Correct);
+							
+							if(fl.Photo_Correct == "N"){
+								console.log("wrong");
+								pt += 0;
+								up_geom = "Y";
+								up_pic = "Y";
+							}
+							else if(fl.Photo_Correct == "Y"){
+								console.log("correct");
+								pt += 500;
+								up_geom = "Y";
+								up_pic = "Y";
+							}
+							else{
+								console.log("photo TBA");
+								pt += 0;
+								up_geom = "Y";
+			
+							}
+							
+							fl.Points += pt;
+							fl.Update_Pt = up_geom;
+							fl.Update_Photo = up_pic;
+							
+														
+							featureLayer.applyEdits(null,[featureLayer.graphics[k]],null);
+							
+						}
+						else if(fl.Update_Pt == "N" && fl.Update_Photo == "Y"){
+
+							console.log("photo if point hasn't been updated");
+							
+						}
+					
 				
-					//if points haven't been updated
-					if(fl.Update_Pt == "N" && fl.Update_Photo == "N"){
-						console.log(fl.TeamName + fl.Question +"has not been updated");
-						if(fl.Photo_Correct == "N"){
-							console.log("photo wrong");
-							pt += 500;
-							up_geom = "Y";
-							up_pic = "Y";
-						}
-						else if(fl.Photo_Correct == "Y"){
-							console.log("photo correct");
-							pt += 1000;
-							up_geom = "Y";
-							up_pic = "Y";
-						}
-						else{
-							console.log("photo TBA");
-							pt += 500;
-							up_geom = "Y";
-		
-						}
-						
-						fl.Points += pt;
-						fl.Update_Pt = up_geom;
-						fl.Update_Photo = up_pic;
-						
-													
-						featureLayer.applyEdits(null,[featureLayer.graphics[k]],null);
-					}
-					else if(fl.Update_Pt == "Y" && fl.Update_Photo == "N"){
-						console.log(fl.TeamName + fl.Question +" has only updated the point, check pic");
-						console.log("Photo is: "+fl.Photo_Correct);
-						
-						if(fl.Photo_Correct == "N"){
-							console.log("wrong");
-							pt += 0;
-							up_geom = "Y";
-							up_pic = "Y";
-						}
-						else if(fl.Photo_Correct == "Y"){
-							console.log("correct");
-							pt += 500;
-							up_geom = "Y";
-							up_pic = "Y";
-						}
-						else{
-							console.log("photo TBA");
-							pt += 0;
-							up_geom = "Y";
-		
-						}
-						
-						fl.Points += pt;
-						fl.Update_Pt = up_geom;
-						fl.Update_Photo = up_pic;
-						
-													
-						featureLayer.applyEdits(null,[featureLayer.graphics[k]],null);
-						
-					}
-					else if(fl.Update_Pt == "N" && fl.Update_Photo == "Y"){
-
-						console.log("photo if point hasn't been updated");
-						
-					}
-
 
 				}
 

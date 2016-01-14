@@ -4,26 +4,79 @@ width: 100%;
 margin: 0;
 padding: 0;
 }
+body{
+background-color:black;
+}
+#top, #right{
+background-color: black;
+}
 .dijitBorders{
-margin:5px 5px 5px 5px; 
+margin:0; 
 border:solid thin #9CAA9C;
 -moz-border-radius: 4px;
 }
+#ageDiv{
+background-color:white;
+}
 .labelText{
-color:#9CAA9C;
-font-size:12pt;  
-font-family:"Tahoma";
+color:white;
+font-size:16pt;  
+font-family: 'MontserratRegular';
 margin:5px;
 }
+#teamName{
+color:white;
+font-size:10pt;  
+font-family: 'MontserratRegular';
+margin:5px;
+}
+p{
+color:white;
+font-size:16pt;  
+font-family: 'MontserratRegular';
+}
 .headerText{
-color:#9CAA9C;
+background-color:white;
+color:black;
 font-size:16pt;
 font-weight:bold;
-font-family: "Tahoma";
+font-family: 'MontserratRegular';
+}
+
+#header{
+background-color:white;
+}
+#timeInfo{
+	color:black;
+	font-size:12pt;
+font-weight:bold;
+font-family: 'MontserratRegular';
+}
+
+title{
+color:white;
+font-size:22pt;
+font-weight:bold;
+font-family: 'MontserratRegular';
 }
 
 #splashscreen {
     height: 100%;
     width: 100%;
     z-index: 99;
+	color:white;
 }
+
+#raceOn{
+	margin: auto;
+	color:white;
+}
+
+#imgAttach{
+	margin: auto;
+}
+
+#ageDiv{
+margin:0px 0px 15px 0px;
+}
+
