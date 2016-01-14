@@ -77,7 +77,7 @@ Teams["TeamB"] = "other_support";
 	
 //add timeframe of race ("mm/dd/yyy HH:MM:SS UTC")
 var raceStart = new Date("1/4/2016 12:00:00 UTC");
-var raceEnd = new Date("1/4/2016 12:31:00 UTC");
+var raceEnd = new Date("1/24/2016 12:31:00 UTC");
 
 
 map.on("load", mapLoaded); 
@@ -105,10 +105,31 @@ function mapLoaded() {
 	if (today>raceEnd){
 		
 			$('#showAnswers').show();
-			$('#showAnswers').click(function(){doBuffer(answerLayer, gsvc)});
-
+			
 	}
-	
+
+
+$('#showAnswers').on("click",
+			
+			function(){
+				var he =$(this).val();
+				if(he == "Get Answers"){
+				
+					$(this).attr('value', 'Hide Answers');
+					console.log("getting");
+					doBuffer(answerLayer, gsvc);
+					
+				}
+				else if(he == "Hide Answers"){
+				console.log("not getting");
+					$(this).attr('value', 'Get Answers');
+					
+					map.graphics.clear();
+					answerLayer.setVisibility(0);
+					
+				}
+
+	});
 	//when race is over, colour the points by team
 	renderByTeam(today, timeExtent.endTime);	
 	
@@ -163,7 +184,7 @@ function doBuffer(answerLayer, gsvc) {
 		var graph = fs[i].geometry;
 		var params = new BufferParameters();
 	 
-	params.geometries = [ graph];
+	params.geometries = [ graph ];
  //buffer in linear units such as meters, km, miles etc.
       params.distances = [ 75];
       params.unit = gsvc.UNIT_METER;
