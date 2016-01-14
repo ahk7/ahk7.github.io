@@ -1,0 +1,53 @@
+getMaxDate(function(maxDate) {
+	console.log("max date:" );
+	//console.log(maxDate);
+	return maxDate;
+});
+
+
+function getMaxDate(callback){
+	
+	
+	var popQueryTask = new esri.tasks.QueryTask(featureLayer.url);
+		
+	var ppQry = setDateQry("max", "DT", "maxDT");
+
+	function setDateQry(statType, statField, statFName){
+		
+		//var largeDT;
+		var popQuery = new esri.tasks.Query();
+		var statDef = new esri.tasks.StatisticDefinition();
+		statDef.statisticType = "max";
+		statDef.onStatisticField = "DT";
+		statDef.outStatisticFieldName = "maxDT";
+
+		popQuery.returnGeometry = false;
+		
+		popQuery.outFields = ["*"];
+		popQuery.outStatistics = [ statDef ];
+		
+		return popQuery;
+		
+	}
+	
+	popQueryTask.execute(ppQry);
+		
+	popQueryTask.on("complete", function(fs){
+		//if (fs.featureSet.features.lenght === 0) callback(0);
+		var he = callback(new Date(fs.featureSet.features[0].attributes.maxDT));
+		console.log("in here");
+		console.log(he);
+		
+		/*
+		for(var i=0;i<fs.featureSet.features.length;i++){
+			//largeDT = new Date(fs.featureSet.features[i].attributes.maxDT);
+			ddd = new Date(fs.featureSet.features[i].attributes.maxDT);
+			console.log(ddd);
+		}
+		callback(ddd);
+		*/
+	});
+
+	
+
+}

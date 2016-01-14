@@ -43,6 +43,7 @@ parser.parse();
 //hide message that says race is still on-going
 $('#raceOn').hide();
 
+/* VARIABLES TO EDIT */
 
 //create map
 map = new Map("map", {
@@ -70,23 +71,33 @@ var answerLayer = new FeatureLayer("http://services.arcgis.com/EgePHk52tsFjmhbJ/
 });
 
 //assign team names
-var Teams = [];
+//provide the name of the Team, and the AGOL username that will be collecting points on behalf of the team
+var Teams =[];
+Teams["TeamA"] = "akung_support";
+Teams["TeamB"] = "other_support";
+	
+//add timeframe of race ("mm/dd/yyy HH:MM:SS UTC")
+var raceStart = new Date("1/4/2016 12:00:00 UTC");
+var raceEnd = new Date("1/4/2016 12:31:00 UTC");
+
 
 map.on("load", mapLoaded); 
 
 $('#printBtn').click(getClues);
+
 
 //run when map is loaded
 function mapLoaded() {
 	
 	//today's date
 	var today = new Date();
-	
+
 	//set the time frame of the race
 	var timeExtent = new TimeExtent();
-	timeExtent.startTime = new Date("1/4/2016 12:00:00 UTC");
-	timeExtent.endTime = new Date("1/4/2016 12:31:00 UTC");
+	timeExtent.startTime = raceStart;
+	timeExtent.endTime = raceEnd;
 	featureLayer.setTimeDefinition(timeExtent);
+
 	
 	//when race is over, colour the points by team
 	renderByTeam(today, timeExtent.endTime);	
@@ -99,31 +110,31 @@ function mapLoaded() {
 
 	featureLayer.on("click",function(evt){
 			
-			featDetails(evt, today, timeExtent.endTime);
+		featDetails(evt, today, timeExtent.endTime);
 	});
 
 	featureLayer.on("load", function(evt){
 		
 		featureLayerLoaded(evt);
+
 		
-		
-	});	
+	});
 	
 	map.on("layers-add-result", function(evt){
-
+		console.log("in here");
 		photoCheck(evt);
-		checkPhotoPts(evt);
+
 		
 	});
 
-
-	
 
 }
 
 function featDetails(evt, today, raceEnd){
 		
 		//if race is over
+		
+	
 		
 	if(today>raceEnd){
 		
@@ -228,41 +239,29 @@ function loadRanks(){
 	
 	qryTask1.execute(qry1, function(fs){
 		
-		//get list of Teams
-		var teamList = [];
-			
-		for(var i = 0; i<fs.features.length; i++){
-			
-			var team = fs.features[i].attributes.TeamName;	
-				
-			teamList.push(team);
-
-		}
-
-		function onlyUnique(value, index, self) { 
-			return self.indexOf(value) === index;
-		}
-
-		var teamFinal = teamList.filter( onlyUnique );
+		var obj =Object.keys(Teams);
 		
 		var listOfObjects = [];
 		
-		
-		teamFinal.forEach(function(entry) {
+		for(var i=0;i<obj.length;i++){
+			var singleObj = {};
+
+			singleObj['team'] = obj[i];
+			singleObj['pts'] = 0;
+
+			listOfObjects.push(singleObj);
 			
-				var singleObj = {};
-				singleObj['team'] = entry;
-				singleObj['pts'] = 0;
-				
-				listOfObjects.push(singleObj);
-				
-		});
+		}
 
-
+		
 		for(var i = 0; i<fs.features.length; i++){
 			
 			var team = fs.features[i].attributes.TeamName;
 			var point = fs.features[i].attributes.Points;
+			
+			//var now = new Date(fs.features[i].attributes.DT);
+			
+			//console.log(now);
 
  			//for each team in the list of teams
 			
@@ -292,6 +291,7 @@ function loadRanks(){
 
 		});
 		divtable.append(rankTable);
+		
 	});
 	
 }
@@ -331,8 +331,6 @@ function featureLayerLoaded(evt) {
 		
 	});
 
-
-	
 }
 
 function timeLabels(ts){
@@ -390,7 +388,7 @@ function photoCheck(evt){
 		
 		//when layer is added
 		map.on("layer-add", function(evt){
-	
+
 			var graphics = aLayer.graphics;
 			var answerPts = qLayer.graphics;
 			var deductPts = [];
@@ -414,7 +412,6 @@ function photoCheck(evt){
 						
 						//update points based on distance
 						getPoints(params,answerPts[i], graphics[j]);
-						
 					
 						}
 
@@ -430,81 +427,205 @@ function photoCheck(evt){
 }
 
 function getPoints(pp, aa, qq){
+
 	
 	gsvc.distance(pp, function(dist){
 
-		//if too far then deduct points
-		if(dist>75){
+		for(var k =0;k<featureLayer.graphics.length;k++){
 			
-			for(var k =0;k<featureLayer.graphics.length;k++){
+			var fl = featureLayer.graphics[k].attributes;
+			
+			//assign team names
+			if(fl.TeamName.length<1 || !fl.TeamName){
 				
-				var fl = featureLayer.graphics[k].attributes;
+				//for each team name, check if the AGOL username == team name
 				
-				//if not already updated for that question submission, calc points
-		 		if(fl.Update_Pt == "N"){
+				for(var tm in Teams){
+				
+					var agolName = Teams[tm];
+					var tmName = tm;
 					
-					fl.Points = 0;
-					
-					if(fl.Question == qq.attributes.Question && fl.TeamName == qq.attributes.TeamName){
-					
-						if(fl.Update_Photo == "Y"){
-							if(fl.Photo_Correct == "Y"){
-								fl.Points += 500;
-							}
-							else if(fl.Photo_Correct == "N"){
-								fl.Points +=0;
-							}
-							else{
-								console.log("Error");
-							}
-						}
-						
-					
-					fl.Update_Pt = "Y";
-					//fLayer.applyEdits(null,[fLayer.graphics[k]],null);
+					if(agolName == fl.Editor){
+
+						fl.TeamName = tmName;
 					}
 				}
 				
 			}
-			
-		}
-		else{
-			
-			for(var k =0;k<featureLayer.graphics.length;k++){
+
+			//if too far
+			if(dist>75){
 				
-				var fl = featureLayer.graphics[k].attributes;
+				//get feature from from editable layer	
+				if(fl.Question == qq.attributes.Question && fl.TeamName == qq.attributes.TeamName){
+					console.log(fl.TeamName + fl.Question +"is too far");
 				
-				//if not already updated for that question submission, calc points
-		 		if(fl.Update_Pt == "N"){
-					if(fl.Question == qq.attributes.Question && fl.TeamName == qq.attributes.TeamName){
-						
-						fl.Points +=500;
-						
-						if(fl.Update_Photo == "Y"){
-							if(fl.Photo_Correct == "Y"){
-								fl.Points += 500;
-							}
-							else if(fl.Photo_Correct == "N"){
-								fl.Points +=0;
-							}
-							else{
-								console.log("Error");
-							}
+					//if points have not been updated yet (based on geom)
+					
+					var pt = 0;
+
+					var up_geom = 'N';
+					var up_pic = 'N';
+				
+					//if points haven't been updated
+					if(fl.Update_Pt == "N" && fl.Update_Photo == "N"){
+						console.log(fl.TeamName + fl.Question +"has not been updated");
+						if(fl.Photo_Correct == "N"){
+							console.log("photo is wrong");
+							pt += 0;
+							up_geom = "Y";
+							up_pic = "Y";
+						}
+						else if(fl.Photo_Correct == "Y"){
+							console.log("photo is correct");
+							pt += 500;
+							up_geom = "Y";
+							up_pic = "Y";
+						}
+						else{
+							console.log("photo TBA");
+							pt += 0;
+							up_geom = "Y";
+		
 						}
 						
-						fl.Update_Pt = "Y";
-						//fLayer.applyEdits(null,[fLayer.graphics[k]],null);
+						fl.Points += pt;
+						fl.Update_Pt = up_geom;
+						fl.Update_Photo = up_pic;
+						
+													
+						featureLayer.applyEdits(null,[featureLayer.graphics[k]],null);
+					}
+					else if(fl.Update_Pt == "Y" && fl.Update_Photo == "N"){
+						console.log(fl.TeamName + fl.Question +" has only updated the point, check pic");
+						
+						if(fl.Photo_Correct == "N"){
+								console.log("photo is wrong");
+							pt += 0;
+							up_geom = "Y";
+							up_pic = "Y";
+						}
+						else if(fl.Photo_Correct == "Y"){
+								console.log("photo is correct");
+							pt += 500;
+							up_geom = "Y";
+							up_pic = "Y";
+						}
+						else{
+							console.log("photo TBA");
+							pt += 0;
+							up_geom = "Y";
+		
+						}
+						
+						fl.Points += pt;
+						fl.Update_Pt = up_geom;
+						fl.Update_Photo = up_pic;
+						
+													
+						featureLayer.applyEdits(null,[featureLayer.graphics[k]],null);
 						
 					}
+					else if(fl.Update_Pt == "N" && fl.Update_Photo == "Y"){
+						
+						
+						console.log("photo can't be updated with point being updated");
+						
+					}
+
+
 				}
-				
+
+
 			}
 			
+			else if(dist<=75){
+				
+				//get feature from from editable layer	
+				if(fl.Question == qq.attributes.Question && fl.TeamName == qq.attributes.TeamName){
+					console.log(fl.TeamName + fl.Question +"is close");
+				
+					//if points have not been updated yet (based on geom)
+					
+					var pt = 0;
+					var up_geom = 'N';
+					var up_pic = 'N';
+				
+					//if points haven't been updated
+					if(fl.Update_Pt == "N" && fl.Update_Photo == "N"){
+						console.log(fl.TeamName + fl.Question +"has not been updated");
+						if(fl.Photo_Correct == "N"){
+							console.log("photo wrong");
+							pt += 500;
+							up_geom = "Y";
+							up_pic = "Y";
+						}
+						else if(fl.Photo_Correct == "Y"){
+							console.log("photo correct");
+							pt += 1000;
+							up_geom = "Y";
+							up_pic = "Y";
+						}
+						else{
+							console.log("photo TBA");
+							pt += 500;
+							up_geom = "Y";
+		
+						}
+						
+						fl.Points += pt;
+						fl.Update_Pt = up_geom;
+						fl.Update_Photo = up_pic;
+						
+													
+						featureLayer.applyEdits(null,[featureLayer.graphics[k]],null);
+					}
+					else if(fl.Update_Pt == "Y" && fl.Update_Photo == "N"){
+						console.log(fl.TeamName + fl.Question +" has only updated the point, check pic");
+						console.log("Photo is: "+fl.Photo_Correct);
+						
+						if(fl.Photo_Correct == "N"){
+							console.log("wrong");
+							pt += 0;
+							up_geom = "Y";
+							up_pic = "Y";
+						}
+						else if(fl.Photo_Correct == "Y"){
+							console.log("correct");
+							pt += 500;
+							up_geom = "Y";
+							up_pic = "Y";
+						}
+						else{
+							console.log("photo TBA");
+							pt += 0;
+							up_geom = "Y";
+		
+						}
+						
+						fl.Points += pt;
+						fl.Update_Pt = up_geom;
+						fl.Update_Photo = up_pic;
+						
+													
+						featureLayer.applyEdits(null,[featureLayer.graphics[k]],null);
+						
+					}
+					else if(fl.Update_Pt == "N" && fl.Update_Photo == "Y"){
+
+						console.log("photo if point hasn't been updated");
+						
+					}
+
+
+				}
+
+
+			}
+
+
 		}
-			
-	 });
-	 
-	 
+	});
 
 }
 function getParams(aa, qq){
