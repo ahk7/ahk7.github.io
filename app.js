@@ -11,12 +11,12 @@ require([
 "esri/tasks/BufferParameters", "esri/tasks/geometry",
 "esri/tasks/DistanceParameters",
 "esri/graphic", "esri/layers/GraphicsLayer","esri/tasks/FeatureSet",
-"esri/tasks/GeometryService",
+"esri/tasks/GeometryService","esri/SpatialReference",
 "esri/dijit/InfoWindow",
 "esri/request",
 "esri/renderers/HeatmapRenderer",
 "esri/renderers/UniqueValueRenderer",
-"esri/symbols/SimpleMarkerSymbol","esri/symbols/SimpleLineSymbol",
+"esri/symbols/SimpleFillSymbol","esri/symbols/SimpleMarkerSymbol","esri/symbols/SimpleLineSymbol",
 "dojo/DeferredList","dojo/_base/Deferred",
 "dijit/layout/BorderContainer", "dijit/layout/ContentPane", "dojo/domReady!"
 ], function(
@@ -30,12 +30,12 @@ Query, QueryTask, StatisticDefinition,
 BufferParameters, Geometry,
 DistanceParameters,
 Graphic, GraphicsLayer, FeatureSet,
-GeometryService,
+GeometryService, SpatialReference,
 InfoWindow,
 esriRequest,
 HeatmapRenderer,
 UniqueValueRenderer,
-SimpleMarkerSymbol, SimpleLineSymbol,
+SimpleFillSymbol,SimpleMarkerSymbol, SimpleLineSymbol,
 DeferredList, Deferred
 ) {
 parser.parse();
@@ -64,10 +64,9 @@ outFields: [ "*" ]
 });
 
 //add Answers layer
-var answerLayer = new FeatureLayer("http://services.arcgis.com/EgePHk52tsFjmhbJ/arcgis/rest/services/Answers/FeatureServer/0", {
-	mode: FeatureLayer.MODE_SNAPSHOT,
-	opacity: 0.0,
-	outFields: [ "*" ]
+var answerLayer = new FeatureLayer("http://services.arcgis.com/EgePHk52tsFjmhbJ/arcgis/rest/services/Answer_WGS/FeatureServer/0", {
+mode: FeatureLayer.MODE_SNAPSHOT,
+outFields: [ "*" ]
 });
 
 //assign team names
@@ -86,6 +85,10 @@ map.on("load", mapLoaded);
 $('#printBtn').click(getClues);
 
 
+$('#showAnswers').hide();
+
+
+
 //run when map is loaded
 function mapLoaded() {
 	
@@ -99,12 +102,21 @@ function mapLoaded() {
 	featureLayer.setTimeDefinition(timeExtent);
 
 	
+	if (today>raceEnd){
+		
+			$('#showAnswers').show();
+			$('#showAnswers').click(function(){doBuffer(answerLayer, gsvc)});
+
+	}
+	
 	//when race is over, colour the points by team
 	renderByTeam(today, timeExtent.endTime);	
 	
 	//add layers to map
 	map.addLayers([featureLayer, answerLayer]);	
 
+	answerLayer.setVisibility(0);
+	
 	//load current rankings
 	loadRanks();
 
@@ -121,14 +133,75 @@ function mapLoaded() {
 	});
 	
 	map.on("layers-add-result", function(evt){
-		console.log("in here");
-		photoCheck(evt);
-
 		
+		//photoCheck(evt);
+	
 	});
+	
 
 
 }
+
+
+function doBuffer(answerLayer, gsvc) {
+	 console.log("run");
+	answerLayer.setVisibility(1);
+	var qryTask1 = new QueryTask(answerLayer.url);
+	
+	var qry1 = new Query();
+	qry1.where = "1=1";
+	qry1.outFields = ["*"];
+	qry1.returnGeometry = true;
+	
+	answerLayer.selectFeatures(qry1, FeatureLayer.SELECTION_NEW, function(fs){
+	
+	map.graphics.clear();
+	
+
+	for(var i=0;i<fs.length;i++){
+		
+		var graph = fs[i].geometry;
+		var params = new BufferParameters();
+	 
+	params.geometries = [ graph];
+ //buffer in linear units such as meters, km, miles etc.
+      params.distances = [ 75];
+      params.unit = gsvc.UNIT_METER;
+	 // params.bufferSpatialReference = new SpatialReference({wid:102100});
+	  //console.log(graph.geometry.spatialReference);
+
+      params.outSpatialReference = graph.spatialReference;
+
+      gsvc.buffer(params, showBuffer, function(){console.log("this is an err");});
+	}
+
+
+	});
+	
+	
+
+	
+ 
+}
+
+function showBuffer(geometries) {
+	console.log("showing buff");
+     var symbol = new SimpleFillSymbol(
+		SimpleFillSymbol.STYLE_SOLID,
+		new SimpleLineSymbol(
+		  SimpleLineSymbol.STYLE_SOLID,
+		  new Color([0,0,255,0.65]), 2
+		),
+		new Color([0,0,255,0.35])
+	  );
+
+  dojo.forEach(geometries, function(geometry) {
+	var graphic = new Graphic(geometry,symbol);
+	map.graphics.add(graphic);
+  });
+}
+
+
 
 function featDetails(evt, today, raceEnd){
 		
