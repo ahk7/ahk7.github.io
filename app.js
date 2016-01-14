@@ -77,7 +77,7 @@ Teams["TeamB"] = "other_support";
 	
 //add timeframe of race ("mm/dd/yyy HH:MM:SS UTC")
 var raceStart = new Date("1/4/2016 12:00:00 UTC");
-var raceEnd = new Date("1/24/2016 12:31:00 UTC");
+var raceEnd = new Date("1/4/2016 12:31:00 UTC");
 
 
 map.on("load", mapLoaded); 
